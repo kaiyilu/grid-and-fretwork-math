@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index, follow" />
+  <title>Grid &amp; Fretwork Math — Bitmask Nonogram &amp; Stencil BFS</title>
+  <meta name="description" content="Zero-dependency JS solvers for 31-bit bitmask Nonogram line deduction, 2D BFS stencil island auto-bridging, and 3-tooth scroll saw blade sizing. MIT spec." />
+  <link rel="canonical" href="https://kaiyilu.github.io/grid-and-fretwork-math/" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Grid &amp; Fretwork Math — Bitmask Nonogram Solvers &amp; 2D BFS Stencil Bridging" />
+  <meta property="og:description" content="Open-source JavaScript equations and interactive verifiers for 31-bit Nonogram uniqueness proofs, 4-connected scroll saw island auto-bridges, and wire-gauge drill sizing." />
+  <meta property="og:url" content="https://kaiyilu.github.io/grid-and-fretwork-math/" />
+  <meta name="twitter:card" content="summary" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "Grid & Fretwork Math: 31-Bit Bitmask Nonogram Deduction, 2D BFS Stencil Island Bridging & Scroll Saw Blade Sizing",
+        "description": "Engineering specification and zero-dependency ES module for uniqueness-verified Nonogram logic grids, 4-connected fretwork dropout detection, Euclidean tab synthesis, and 3-tooth scroll saw blade selection.",
+        "author": {
+          "@type": "Person",
+          "name": "Kaiyi Lu",
+          "url": "https://kaiyilu.github.io/"
+        },
+        "url": "https://kaiyilu.github.io/grid-and-fretwork-math/",
+        "proficiencyLevel": "Expert"
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "name": "grid-and-fretwork-math",
+        "codeRepository": "https://github.com/kaiyilu/grid-and-fretwork-math",
+        "programmingLanguage": "JavaScript",
+        "runtimePlatform": "Node.js & Browser ES Modules",
+        "license": "https://opensource.org/licenses/MIT"
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Why use 31-bit signed-safe bitmasks for Nonogram line deduction in JavaScript?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "JavaScript bitwise shift operators cast operands to 32-bit signed two's-complement integers where (1 << 31) overflows negative. Operating on lines up to 31 cells with memoized O(k * N^2) dynamic programming keeps every block shift and forced-cell XOR intersection inside a single CPU register."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Why must scroll saw and stencil island detection use 4-connected rather than 8-connected BFS?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Two solid pixels touching only diagonally at (x, y) and (x+1, y+1) share a zero-width mathematical vertex. On plywood, hardwood, or Mylar stencil film, the saw kerf severs diagonal point contacts immediately, so structural connectivity requires 4-connected orthogonal adjacency."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the 3-tooth rule for scroll saw blade selection?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "At least 3 blade teeth (and ideally no more than 8) should span the workpiece thickness at all times, giving TPI >= 3 / thicknessIn. Fewer than 3 teeth causes violent upstroke chatter, while excessive TPI packs gullets with sawdust and scorches cherry or maple."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #e2e8f0;
+      --accent: #0369a1;
+      --accent-dark: #0c4a6e;
+      --accent-soft: #f0f9ff;
+      --code-bg: #0f172a;
+      --code-ink: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: #f8fafc;
+      padding: 2.75rem 1.25rem;
+      border-bottom: 4px solid #38bdf8;
+    }
+    .wrap {
+      max-width: 940px;
+      margin: 0 auto;
+    }
+    .eyebrow {
+      color: #7dd3fc;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.45rem;
+    }
+    h1 {
+      margin: 0 0 0.65rem;
+      font-size: clamp(1.65rem, 3.4vw, 2.3rem);
+      line-height: 1.2;
+    }
+    header p {
+      margin: 0 0 1rem;
+      color: #cbd5e1;
+      max-width: 760px;
+      font-size: 0.98rem;
+    }
+    .header-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      font-size: 0.85rem;
+    }
+    .header-links a {
+      color: #bae6fd;
+      text-decoration: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .header-links a:hover { text-decoration: underline; }
+    main {
+      padding: 2rem 1.25rem 3.5rem;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.5rem 1.65rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    h2 {
+      margin-top: 0;
+      font-size: 1.28rem;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 0.55rem;
+    }
+    h3 {
+      font-size: 1.03rem;
+      margin: 1.25rem 0 0.45rem;
+    }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 0.95rem 1.1rem;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 0.84rem;
+      line-height: 1.52;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background: #f1f5f9;
+      padding: 0.12rem 0.35rem;
+      border-radius: 4px;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+    .formula-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--accent);
+      padding: 0.75rem 1rem;
+      margin: 0.9rem 0;
+      border-radius: 0 8px 8px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88rem;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 0.9rem 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.58rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+    }
+    .verifier-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 760px) {
+      .verifier-grid { grid-template-columns: 1fr; }
+    }
+    .controls {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .field label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--ink);
+    }
+    .field select, .field input[type="text"], .field input[type="number"] {
+      width: 100%;
+      padding: 0.48rem 0.65rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+      color: var(--ink);
+    }
+    .field-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+    .check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      padding-top: 0.2rem;
+    }
+    .check-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      cursor: pointer;
+    }
+    .svg-stage {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 0.9rem;
+      text-align: center;
+      color: #cbd5e1;
+    }
+    .metrics-list {
+      margin-top: 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      text-align: left;
+    }
+    .metric-pill {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0.48rem 0.65rem;
+    }
+    .metric-pill small {
+      display: block;
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .metric-pill strong {
+      font-size: 0.9rem;
+      color: #f8fafc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .status-banner {
+      margin-top: 0.65rem;
+      padding: 0.52rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    .status-ok {
+      background: rgba(21, 128, 61, 0.22);
+      border: 1px solid #22c55e;
+      color: #bbf7d0;
+    }
+    .status-warn {
+      background: rgba(220, 38, 38, 0.24);
+      border: 1px solid #f87171;
+      color: #fecaca;
+    }
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.85rem;
+      margin-top: 0.85rem;
+    }
+    .tool-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: var(--accent-soft);
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      padding: 0.88rem 1.02rem;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .tool-card:hover {
+      border-color: #0284c7;
+      transform: translateY(-1px);
+    }
+    .tool-card strong {
+      display: block;
+      color: var(--accent-dark);
+      font-size: 0.94rem;
+      margin-bottom: 0.22rem;
+    }
+    .tool-card span {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--line);
+    }
+    a { color: var(--accent); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">Open-Source Discrete Grid &amp; Fabrication Specification</div>
+      <h1>Grid &amp; Fretwork Math: 31-Bit Bitmask Nonogram Solvers &amp; 2D BFS Stencil Island Bridging</h1>
+      <p>Zero-dependency JavaScript / Node.js algorithms uniting picture-logic constraint propagation with physical scroll-saw and Mylar stencil topology: $O(k \cdot N^2)$ bitmask line deduction, uniqueness proofs, 4-connected dropout island detection, Euclidean auto-bridging, and 3-tooth blade sizing.</p>
+      <nav class="header-links" aria-label="Repository links">
+        <a href="https://github.com/kaiyilu/grid-and-fretwork-math">GitHub: kaiyilu/grid-and-fretwork-math</a>
+        <a href="#fretwork-verifier">Live Stencil BFS Verifier</a>
+        <a href="#nonogram-verifier">Live Bitmask Nonogram Verifier</a>
+        <a href="#blade-math">3-Tooth Blade Table</a>
+        <a href="#implementations">Production Web Studios</a>
+        <a href="https://kaiyilu.github.io/">Engineering Index &rarr;</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="fretwork-verifier">
+      <h2>Interactive 2D BFS Dropout Island &amp; Scroll Saw Blade Verifier</h2>
+      <p>Executed live in your browser via <a href="https://github.com/kaiyilu/grid-and-fretwork-math/blob/main/src/index.mjs"><code>src/index.mjs</code></a>. Inspect how 4-connected perimeter flood fill isolates unanchored red dropout islands and welds them with shortest-Euclidean structural tabs while computing the 3-tooth blade &amp; wire-gauge pilot drill.</p>
+
+      <div class="verifier-grid">
+        <div class="controls">
+          <div class="field">
+            <label for="stencilPreset">Binary Stencil / Fretwork Plaque Mask (21&times;21)</label>
+            <select id="stencilPreset">
+              <option value="bullseye" selected>Concentric Ring + Central Bullseye (2 Nested Islands)</option>
+              <option value="portrait">Portrait Face Cutout — Eyes &amp; Nose (3 Islands)</option>
+              <option value="letterO">Block Letter 'O' Counter Plaque (1 Core Island)</option>
+            </select>
+          </div>
+          <div class="field-pair">
+            <div class="field">
+              <label for="bridgeRadius">Bridge Brush Radius (px)</label>
+              <select id="bridgeRadius">
+                <option value="0">0 px (1-cell Supercover Tab)</option>
+                <option value="1" selected>1 px (~3-cell Structural Tab)</option>
+                <option value="2">2 px (Heavy Hardwood Tab)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="stockThickness">Wood Stock Thickness</label>
+              <select id="stockThickness">
+                <option value="0.125">1/8" (0.125" Baltic Birch)</option>
+                <option value="0.25" selected>1/4" (0.250" Fretwork Sheet)</option>
+                <option value="0.375">3/8" (0.375" Ornament Stock)</option>
+                <option value="0.5">1/2" (0.500" Name Plaque)</option>
+                <option value="0.75">3/4" (0.750" Hardwood Sign)</option>
+                <option value="1.5">1-1/2" (1.50" Compound Cut)</option>
+              </select>
+            </div>
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="autoBridgeToggle" checked /> Enable <code>autoBridgeIslands()</code></label>
+            <label><input type="checkbox" id="hardwoodToggle" /> Dense Hardwood</label>
+            <label><input type="checkbox" id="tightFretToggle" checked /> Tight Fretwork</label>
+          </div>
+        </div>
+
+        <div class="svg-stage">
+          <svg id="fretworkSvg" viewBox="0 0 210 210" width="210" height="210" role="img" aria-label="2D BFS stencil island audit and Euclidean bridge preview"></svg>
+          <div id="islandBanner" class="status-banner status-ok"></div>
+          <div class="metrics-list">
+            <div class="metric-pill">
+              <small>Unanchored Islands</small>
+              <strong id="outIslands">0 (2 bridged)</strong>
+            </div>
+            <div class="metric-pill">
+              <small>Anchored Solid Cells</small>
+              <strong id="outAnchored">194 px</strong>
+            </div>
+            <div class="metric-pill">
+              <small>Recommended Blade</small>
+              <strong id="outBlade">#1 (20 TPI &bull; 5.0 teeth)</strong>
+            </div>
+            <div class="metric-pill">
+              <small>Pilot Entry Drill</small>
+              <strong id="outDrill">#60 (0.040" / 1.02 mm)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="nonogram-verifier">
+      <h2>Interactive 31-Bit Nonogram Line DP &amp; Uniqueness Verifier</h2>
+      <p>Test both 1D register bitmask line deduction (<code>deduceNonogramLine</code>) and full 2D queue propagation + minimum-entropy uniqueness verification (<code>solveNonogramBitmask</code>).</p>
+
+      <div class="verifier-grid">
+        <div class="controls">
+          <div class="field">
+            <label for="nonogramPreset">2D Puzzle Uniqueness Benchmark</label>
+            <select id="nonogramPreset">
+              <option value="anchor10" selected>10&times;10 Maritime Anchor (Line-Solvable &amp; Unique)</option>
+              <option value="heart5">5&times;5 Pixel Heart (Line-Solvable in 9 Steps)</option>
+              <option value="ambiguous6">6&times;6 Switching-Component Frame (Ambiguous: 2 Solutions)</option>
+            </select>
+          </div>
+          <div class="field-pair">
+            <div class="field">
+              <label for="lineLenInput">1D Line Length (1–20)</label>
+              <input id="lineLenInput" type="number" min="4" max="20" value="10" />
+            </div>
+            <div class="field">
+              <label for="lineCluesInput">1D Run Clues (comma-separated)</label>
+              <input id="lineCluesInput" type="text" value="6, 2" />
+            </div>
+          </div>
+          <div class="formula-box" id="lineMaskReadout">
+            1D Bitmask Deduction: computing...
+          </div>
+        </div>
+
+        <div class="svg-stage">
+          <svg id="nonogramSvg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Solved Nonogram boolean matrix preview"></svg>
+          <div id="nonogramBanner" class="status-banner status-ok"></div>
+          <div class="metrics-list">
+            <div class="metric-pill">
+              <small>Uniqueness Proof</small>
+              <strong id="outUnique">Unique (1 solution)</strong>
+            </div>
+            <div class="metric-pill">
+              <small>Pure Line-Solvable</small>
+              <strong id="outLineSolvable">true (0 guesses)</strong>
+            </div>
+            <div class="metric-pill">
+              <small>Queue Line Updates</small>
+              <strong id="outSteps">18 steps</strong>
+            </div>
+            <div class="metric-pill">
+              <small>1D Valid Placements</small>
+              <strong id="outConfigs">3 configs</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>1. 31-Bit Bitmask Nonogram Line Deduction &amp; Switching-Component Proofs</h2>
+      <p>A Nonogram (Picross / Griddlers) puzzle specifies ordered contiguous block lengths $R = [r_0, r_1, \dots, r_{k-1}]$ along each row and column of an $H \times W$ binary grid. Naive backtracking over pixels explodes as $O(2^{HW})$, whereas encoding each row and column into a 31-bit integer mask turns run placement and forced-cell intersection into register-level bitwise operations.</p>
+
+      <h3>Why 31 Bits Instead of 32 in JavaScript?</h3>
+      <p>ECMAScript bitwise operators (<code>&lt;&lt;</code>, <code>|</code>, <code>&amp;</code>, <code>^</code>) coerce Numbers to signed 32-bit two's-complement integers (<code>Int32</code>), where <code>1 &lt;&lt; 31</code> evaluates to <code>-2147483648</code>. Restricting single-word masks to $1 \le N \le 31$ with <code>0x7fffffff</code> keeps all block masks non-negative across standard $5\times 5$ through $30\times 30$ puzzles.</p>
+
+      <div class="formula-box">
+        minSpan[i] = r[i] + 1 + minSpan[i + 1], &nbsp; blockMask(p, r) = ((1 &lt;&lt; r) - 1) &lt;&lt; p<br />
+        forcedFilledMask = fullMask ^ unionEmpty, &nbsp; forcedEmptyMask = fullMask ^ unionFill
+      </div>
+
+      <p>Instead of enumerating exponentially many full-line combinations on sparse clues such as <code>[1, 1, 1, 1, 1]</code>, <code>deduceNonogramLine</code> memoizes suffix states <code>(runIdx, startPos)</code> in flat typed arrays (<code>Float64Array</code> / <code>Int32Array</code>), bounding worst-case line complexity to $O(k \cdot N^2)$. When generating puzzles from photos, <code>solveNonogramBitmask</code> verifies both <code>unique === true</code> (eliminating $2 \times 2$ checkerboard switching components) and <code>lineSolvable === true</code> so players never have to guess.</p>
+
+      <pre><code>import { computeNonogramClues, deduceNonogramLine, solveNonogramBitmask } from "./src/index.mjs";
+
+// 1D overlap deduction: clue [6, 2] on a 10-cell line has only 3 valid placements
+const d = deduceNonogramLine(10, [6, 2]);
+// d.forcedFilledMask => 0b0100111100 (cells 2,3,4,5 and cell 8 are 100% forced!)
+
+// 2D uniqueness &amp; pure deterministic line-solvability audit
+const { rowClues, colClues } = computeNonogramClues(pixelGrid);
+const proof = solveNonogramBitmask(rowClues, colClues);
+// proof => { solvable: true, unique: true, lineSolvable: true, solutionCount: 1, ... }</code></pre>
+    </section>
+
+    <section>
+      <h2>2. 2D 4-Connected BFS Dropout Detection &amp; Shortest-Euclidean Tab Synthesis</h2>
+      <p>When converting a portrait photo or script lettering into a wood scroll-saw pattern or Mylar airbrush stencil, binary thresholding partitions the canvas into <strong>keep material</strong> (<code>1</code> = solid wood / stencil sheet) and <strong>cut void</strong> (<code>0</code> = saw kerf / open window). Any solid component that lacks an orthogonal path to the outer plaque border becomes a <strong>floating dropout island</strong> that falls into the dust collection chute the moment its surrounding contour is cut.</p>
+
+      <h3>Strict 4-Connectivity vs. Diagonal Corner Snap</h3>
+      <p>Raster contour libraries frequently group pixels using 8-neighbor Moore adjacency. In physical woodworking, two solid cells touching only diagonally at $(x, y)$ and $(x+1, y+1)$ meet at a zero-width mathematical point—a <code>0.034"</code> scroll saw blade severs both kerfs right through the vertex. <code>detectFloatingIslands</code> enforces strict 4-connected Von Neumann flood fill seeded from the outer frame:</p>
+
+      <pre><code>import { detectFloatingIslands, autoBridgeIslands } from "./src/index.mjs";
+
+const audit = detectFloatingIslands(keepMask, width, height);
+// audit.stateMask: 0 = cut void, 1 = frame-anchored wood, 2 = floating dropout island
+
+if (audit.islandCount &gt; 0) {
+  // Iteratively bridges the globally closest (anchorBoundary &lt;-&gt; islandBoundary) Euclidean pair,
+  // promoting newly welded rings so nested islands cascade across short local tabs!
+  const welded = autoBridgeIslands(keepMask, width, height, 1);
+  // welded.remainingIslandCount === 0
+}</code></pre>
+    </section>
+
+    <section id="blade-math">
+      <h2>3. Scroll Saw 3-Tooth Engagement Physics &amp; Wire-Gauge Pilot Drills</h2>
+      <p>Scroll saw blade sizing balances two competing mechanical failure modes across stock thickness $t_{\text{in}}$:</p>
+      <ul>
+        <li><strong>Under-Engagement (&lt; 3 Teeth in Stock):</strong> Tooth gullets straddle the entire board thickness, hooking bottom-face fibers on the upstroke and violently slamming the workpiece against the saw table.</li>
+        <li><strong>Over-Engagement (&gt; 10 Teeth in Stock):</strong> Sawdust generated near the top of the kerf fills every gullet before exiting the bottom face, creating friction heat that burns cherry, hard maple, and walnut black.</li>
+      </ul>
+
+      <div class="formula-box">
+        Minimum Tooth Pitch: &nbsp; TPI &ge; 3 / thicknessIn &nbsp;&nbsp;|&nbsp;&nbsp; Optimal Window: &nbsp; 3 &le; (thicknessIn &times; TPI) &le; 8
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Blade Size</th>
+            <th>Blade Width</th>
+            <th>Kerf Thickness</th>
+            <th>Pitch (TPI)</th>
+            <th>Min Stock ($3/\text{TPI}$)</th>
+            <th>Pilot Drill (Wire Gauge)</th>
+            <th>Fractional Drill</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>#2/0</code></td>
+            <td><code>0.022"</code> (<code>0.56 mm</code>)</td>
+            <td><code>0.010"</code> (<code>0.25 mm</code>)</td>
+            <td><code>28</code></td>
+            <td><code>0.107"</code> (stack veneer)</td>
+            <td><code>#65</code> (<code>0.035"</code> / <code>0.89 mm</code>)</td>
+            <td><code>1/32"</code>–<code>3/64"</code></td>
+          </tr>
+          <tr>
+            <td><code>#0</code></td>
+            <td><code>0.024"</code> (<code>0.61 mm</code>)</td>
+            <td><code>0.011"</code> (<code>0.28 mm</code>)</td>
+            <td><code>25</code></td>
+            <td><code>0.120"</code> (<code>1/8"</code>)</td>
+            <td><code>#63</code> (<code>0.037"</code> / <code>0.94 mm</code>)</td>
+            <td><code>3/64"</code> (<code>0.047"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#1</code></td>
+            <td><code>0.029"</code> (<code>0.74 mm</code>)</td>
+            <td><code>0.012"</code> (<code>0.30 mm</code>)</td>
+            <td><code>20</code></td>
+            <td><code>0.150"</code> (<code>3/16"</code>)</td>
+            <td><code>#60</code> (<code>0.040"</code> / <code>1.02 mm</code>)</td>
+            <td><code>3/64"</code> (<code>0.047"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#3</code></td>
+            <td><code>0.034"</code> (<code>0.86 mm</code>)</td>
+            <td><code>0.014"</code> (<code>0.36 mm</code>)</td>
+            <td><code>16</code></td>
+            <td><code>0.188"</code> (<code>3/16"</code>–<code>1/4"</code>)</td>
+            <td><code>#58</code> (<code>0.042"</code> / <code>1.07 mm</code>)</td>
+            <td><code>3/64"</code> (<code>0.047"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#5</code></td>
+            <td><code>0.041"</code> (<code>1.04 mm</code>)</td>
+            <td><code>0.016"</code> (<code>0.41 mm</code>)</td>
+            <td><code>12.5</code></td>
+            <td><code>0.240"</code> (<code>1/4"</code>–<code>1/2"</code>)</td>
+            <td><code>#55</code> (<code>0.052"</code> / <code>1.32 mm</code>)</td>
+            <td><code>1/16"</code> (<code>0.063"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#7</code></td>
+            <td><code>0.045"</code> (<code>1.14 mm</code>)</td>
+            <td><code>0.018"</code> (<code>0.46 mm</code>)</td>
+            <td><code>11.5</code></td>
+            <td><code>0.261"</code> (<code>1/2"</code>–<code>3/4"</code>)</td>
+            <td><code>#53</code> (<code>0.0595"</code> / <code>1.51 mm</code>)</td>
+            <td><code>1/16"</code> (<code>0.063"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#9</code></td>
+            <td><code>0.053"</code> (<code>1.35 mm</code>)</td>
+            <td><code>0.019"</code> (<code>0.48 mm</code>)</td>
+            <td><code>11</code></td>
+            <td><code>0.273"</code> (<code>3/4"</code>–<code>1.25"</code>)</td>
+            <td><code>#50</code> (<code>0.070"</code> / <code>1.78 mm</code>)</td>
+            <td><code>5/64"</code> (<code>0.078"</code>)</td>
+          </tr>
+          <tr>
+            <td><code>#12</code></td>
+            <td><code>0.062"</code> (<code>1.57 mm</code>)</td>
+            <td><code>0.024"</code> (<code>0.61 mm</code>)</td>
+            <td><code>9.5</code></td>
+            <td><code>0.316"</code> (<code>1.25"</code>–<code>2.0"</code>)</td>
+            <td><code>#44</code> (<code>0.086"</code> / <code>2.18 mm</code>)</td>
+            <td><code>3/32"</code> (<code>0.094"</code>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="implementations">
+      <h2>4. Interactive Browser Implementations (Zero Login, 100% Client-Side)</h2>
+      <p>The ten zero-backend web tools below run these exact bitmask deduction and 2D BFS topology pipelines directly in the browser:</p>
+
+      <h3>Nonogram Picture Logic Suite (<code>nonogramgrid.com</code>)</h3>
+      <div class="tool-grid">
+        <a class="tool-card" href="https://nonogramgrid.com/">
+          <strong>Nonogram Puzzle &rarr;</strong>
+          <span>Play uniqueness-verified 5&times;5 to 20&times;20 picture logic grids with real-time bitmask line hints and zero guessing.</span>
+        </a>
+        <a class="tool-card" href="https://nonogramgrid.com/nonogram-generator/">
+          <strong>Nonogram Generator &rarr;</strong>
+          <span>Convert any photo or pixel sprite into a guaranteed single-solution Nonogram with automatic switching-component repair.</span>
+        </a>
+        <a class="tool-card" href="https://nonogramgrid.com/daily-nonogram/">
+          <strong>Daily Nonogram Puzzle &rarr;</strong>
+          <span>Deterministic daily seeded Nonogram challenges audited for pure human line-solvability.</span>
+        </a>
+        <a class="tool-card" href="https://nonogramgrid.com/printable-nonogram-puzzles/">
+          <strong>Printable Nonogram Puzzles &rarr;</strong>
+          <span>High-DPI vector PDF puzzle sheets and classroom booklet packs with pre-computed run-length clue headers.</span>
+        </a>
+        <a class="tool-card" href="https://nonogramgrid.com/nonogram-solver/">
+          <strong>Nonogram Solver &rarr;</strong>
+          <span>Step-by-step bitmask constraint debugger explaining exact forced block overlaps and cross-out deductions.</span>
+        </a>
+      </div>
+
+      <h3>Scroll Saw, Stencil &amp; Pyrography CAD Suite (<code>scrollsawpatterngenerator.com</code>)</h3>
+      <div class="tool-grid">
+        <a class="tool-card" href="https://scrollsawpatterngenerator.com/">
+          <strong>Scroll Saw Pattern Generator &rarr;</strong>
+          <span>Turn portraits and wildlife photos into 1:1 fretwork SVGs with 2D BFS dropout alerts, 1-click bridges, and #58 drill marks.</span>
+        </a>
+        <a class="tool-card" href="https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/">
+          <strong>Scroll Saw Name Pattern Maker &rarr;</strong>
+          <span>Connected script and block name plaques that automatically weld floating letter counters (a, e, o, B) to the base rail.</span>
+        </a>
+        <a class="tool-card" href="https://scrollsawpatterngenerator.com/stencil-maker-from-photo/">
+          <strong>Stencil Maker From Photo &rarr;</strong>
+          <span>Multi-island Mylar, spray-paint, and Cricut stencil generator with shortest-Euclidean structural bridge synthesis.</span>
+        </a>
+        <a class="tool-card" href="https://scrollsawpatterngenerator.com/wood-burning-pattern-generator/">
+          <strong>Wood Burning Pattern Generator &rarr;</strong>
+          <span>Clean contour line art, 3-tone pyrography shading guides, and mirrored graphite / heat-pen transfer templates.</span>
+        </a>
+        <a class="tool-card" href="https://scrollsawpatterngenerator.com/scroll-saw-blade-chart/">
+          <strong>Scroll Saw Blade Chart &rarr;</strong>
+          <span>Interactive 3-tooth TPI calculator matching wood species, thickness, SPM speed, and wire-gauge entry drill bits.</span>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Run the Open-Source CLI, Tests &amp; Engineering Notes</h2>
+      <p>Clone <a href="https://github.com/kaiyilu/grid-and-fretwork-math">github.com/kaiyilu/grid-and-fretwork-math</a> and execute the zero-dependency Node.js test suite (Node.js 18+):</p>
+      <pre><code>git clone https://github.com/kaiyilu/grid-and-fretwork-math.git
+cd grid-and-fretwork-math
+node --test
+node ./src/index.mjs</code></pre>
+      <p>For a full architectural walkthrough of how these algorithms power browser-native Canvas2D and SVG editors, read the companion article: <a href="https://dev.to/kaiyilu/bitmask-nonogram-line-solvers-2d-bfs-stencil-island-bridging-in-pure-typescript-194d">Bitmask Nonogram Line Solvers &amp; 2D BFS Stencil Island Bridging in Pure TypeScript</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    MIT Licensed Discrete Grid &amp; Fabrication Reference &bull; <a href="https://github.com/kaiyilu/grid-and-fretwork-math">GitHub Source</a> &bull; <a href="https://kaiyilu.github.io/">kaiyilu.github.io</a>
+  </footer>
+
+  <script type="module">
+    import {
+      computeNonogramClues,
+      deduceNonogramLine,
+      solveNonogramBitmask,
+      detectFloatingIslands,
+      autoBridgeIslands,
+      recommendScrollSawBlade,
+    } from "./src/index.mjs";
+
+    /* ------------------------------------------------------------------
+     * 1. Interactive 2D BFS Stencil Island & Scroll Saw Blade Verifier
+     * ------------------------------------------------------------------ */
+    const W = 21;
+    const H = 21;
+
+    function buildStencilMask(kind) {
+      const m = new Uint8Array(W * H);
+      // Outer structural frame (2px border)
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (x <= 1 || x >= W - 2 || y <= 1 || y >= H - 2) {
+            m[y * W + x] = 1;
+          }
+        }
+      }
+      if (kind === "bullseye") {
+        for (let y = 2; y < H - 2; y++) {
+          for (let x = 2; x < W - 2; x++) {
+            const d = Math.hypot(x - 10, y - 10);
+            if ((d >= 5.1 && d <= 7.0) || d <= 2.1) {
+              m[y * W + x] = 1;
+            }
+          }
+        }
+      } else if (kind === "portrait") {
+        // Anchored shoulders at bottom + bright face cutout containing 2 eyes + 1 nose island
+        for (let y = 15; y < H - 2; y++) {
+          for (let x = 5; x <= 15; x++) m[y * W + x] = 1;
+        }
+        // Left eye, right eye, nose islands
+        const dots = [
+          [7, 7, 1.5],
+          [13, 7, 1.5],
+          [10, 11, 1.8],
+        ];
+        for (let y = 2; y < H - 2; y++) {
+          for (let x = 2; x < W - 2; x++) {
+            for (const [cx, cy, r] of dots) {
+              if (Math.hypot(x - cx, y - cy) <= r) m[y * W + x] = 1;
+            }
+          }
+        }
+      } else {
+        // Block letter 'O' void ring with solid interior counter island
+        for (let y = 3; y <= 17; y++) {
+          for (let x = 3; x <= 17; x++) {
+            m[y * W + x] = 1;
+          }
+        }
+        for (let y = 4; y <= 16; y++) {
+          for (let x = 5; x <= 15; x++) {
+            m[y * W + x] = 0;
+          }
+        }
+        for (let y = 7; y <= 13; y++) {
+          for (let x = 8; x <= 12; x++) {
+            m[y * W + x] = 1;
+          }
+        }
+      }
+      return m;
+    }
+
+    const stencilPreset = document.getElementById("stencilPreset");
+    const bridgeRadius = document.getElementById("bridgeRadius");
+    const stockThickness = document.getElementById("stockThickness");
+    const autoBridgeToggle = document.getElementById("autoBridgeToggle");
+    const hardwoodToggle = document.getElementById("hardwoodToggle");
+    const tightFretToggle = document.getElementById("tightFretToggle");
+    const fretworkSvg = document.getElementById("fretworkSvg");
+    const islandBanner = document.getElementById("islandBanner");
+
+    function renderFretworkVerifier() {
+      const rawMask = buildStencilMask(stencilPreset.value);
+      const radiusPx = Number(bridgeRadius.value);
+      const useAutoBridge = autoBridgeToggle.checked;
+
+      let activeMask = rawMask;
+      let bridgeOnly = new Uint8Array(W * H);
+      let bridgesAdded = 0;
+
+      if (useAutoBridge) {
+        const res = autoBridgeIslands(rawMask, W, H, radiusPx);
+        activeMask = res.bridgedMask;
+        bridgeOnly = res.bridgeOnlyMask;
+        bridgesAdded = res.bridgesAdded;
+      }
+
+      const audit = detectFloatingIslands(activeMask, W, H);
+      const cell = 10;
+      const rects = [];
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const idx = y * W + x;
+          let fill = "#0f172a"; // Cut void
+          if (bridgeOnly[idx]) {
+            fill = "#38bdf8"; // Synthesized structural bridge
+          } else if (audit.stateMask[idx] === 1) {
+            fill = "#94a3b8"; // Anchored safe wood
+          } else if (audit.stateMask[idx] === 2) {
+            fill = "#ef4444"; // Floating dropout hazard!
+          }
+          rects.push(
+            `<rect x="${x * cell + 0.5}" y="${y * cell + 0.5}" width="${cell - 1}" height="${cell - 1}" rx="1.5" fill="${fill}" />`
+          );
+        }
+      }
+      fretworkSvg.innerHTML = rects.join("");
+
+      if (audit.islandCount === 0) {
+        islandBanner.className = "status-banner status-ok";
+        islandBanner.textContent = `100% 4-Connected Plaque: 0 dropout islands (${bridgesAdded} Euclidean bridge${bridgesAdded === 1 ? "" : "s"} stamped in cyan).`;
+      } else {
+        islandBanner.className = "status-banner status-warn";
+        islandBanner.textContent = `Dropout Alert: ${audit.islandCount} unanchored red island${audit.islandCount === 1 ? "" : "s"} (${audit.floatingPixelCount} px) will fall through the saw table!`;
+      }
+
+      const blade = recommendScrollSawBlade({
+        thicknessIn: Number(stockThickness.value),
+        isHardwood: hardwoodToggle.checked,
+        tightFretwork: tightFretToggle.checked,
+      });
+
+      document.getElementById("outIslands").textContent = useAutoBridge
+        ? `0 (${bridgesAdded} bridged)`
+        : `${audit.islandCount} floating`;
+      document.getElementById("outAnchored").textContent = `${audit.anchoredCount} px`;
+      document.getElementById("outBlade").textContent = `${blade.bladeSize} (${blade.tpi} TPI • ${blade.engagedTeeth} teeth)`;
+      document.getElementById("outDrill").textContent = `${blade.pilotDrillGauge} (${blade.pilotDrillIn}" / ${blade.pilotDrillMm} mm)`;
+    }
+
+    [stencilPreset, bridgeRadius, stockThickness, autoBridgeToggle, hardwoodToggle, tightFretToggle].forEach((el) => {
+      el.addEventListener("input", renderFretworkVerifier);
+      el.addEventListener("change", renderFretworkVerifier);
+    });
+    renderFretworkVerifier();
+
+    /* ------------------------------------------------------------------
+     * 2. Interactive 31-Bit Nonogram Line DP & Uniqueness Verifier
+     * ------------------------------------------------------------------ */
+    const NONOGRAM_BENCHMARKS = {
+      anchor10: computeNonogramClues([
+        [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+        [1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+        [1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+      ]),
+      heart5: computeNonogramClues([
+        [0, 1, 0, 1, 0],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 0],
+        [0, 0, 1, 0, 0],
+      ]),
+      ambiguous6: {
+        rows: 6,
+        cols: 6,
+        rowClues: [[6], [1, 1], [1, 1, 1], [1, 1, 1], [1, 1], [6]],
+        colClues: [[6], [1, 1], [1, 1, 1], [1, 1, 1], [1, 1], [6]],
+      },
+    };
+
+    const nonogramPreset = document.getElementById("nonogramPreset");
+    const lineLenInput = document.getElementById("lineLenInput");
+    const lineCluesInput = document.getElementById("lineCluesInput");
+    const lineMaskReadout = document.getElementById("lineMaskReadout");
+    const nonogramSvg = document.getElementById("nonogramSvg");
+    const nonogramBanner = document.getElementById("nonogramBanner");
+
+    function renderNonogramVerifier() {
+      const bench = NONOGRAM_BENCHMARKS[nonogramPreset.value] || NONOGRAM_BENCHMARKS.anchor10;
+      const solved = solveNonogramBitmask(bench.rowClues, bench.colClues);
+      const R = bench.rowClues.length;
+      const C = bench.colClues.length;
+      const cell = 200 / Math.max(R, C);
+
+      const shapes = [];
+      for (let r = 0; r < R; r++) {
+        for (let c = 0; c < C; c++) {
+          const on = solved.solution ? solved.solution[r][c] : false;
+          shapes.push(
+            `<rect x="${c * cell + 1}" y="${r * cell + 1}" width="${cell - 2}" height="${cell - 2}" rx="2" fill="${
+              on ? "#38bdf8" : "#1e293b"
+            }" />`
+          );
+        }
+      }
+      nonogramSvg.innerHTML = shapes.join("");
+
+      if (solved.unique && solved.lineSolvable) {
+        nonogramBanner.className = "status-banner status-ok";
+        nonogramBanner.textContent = `Verified Unique & Purely Line-Solvable (${R}×${C}) — 0 bifurcation guesses needed.`;
+      } else {
+        nonogramBanner.className = "status-banner status-warn";
+        nonogramBanner.textContent = `Switching Component Detected: ${solved.solutionCount} distinct valid solutions (${solved.unresolvedAfterLinePass} cells ambiguous under line logic).`;
+      }
+
+      const len = Math.min(20, Math.max(4, Number(lineLenInput.value) || 10));
+      const parsedRuns = lineCluesInput.value
+        .split(/[\s,]+/)
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      const lineRes = deduceNonogramLine(len, parsedRuns);
+
+      if (lineRes.contradiction) {
+        lineMaskReadout.textContent = `Contradiction: runs [${parsedRuns.join(", ")}] exceed ${len}-cell span.`;
+        document.getElementById("outConfigs").textContent = "0 (invalid)";
+      } else {
+        const chars = [];
+        for (let i = 0; i < len; i++) {
+          if (lineRes.forcedFilledMask & (1 << i)) chars.push("■");
+          else if (lineRes.forcedEmptyMask & (1 << i)) chars.push("×");
+          else chars.push("·");
+        }
+        lineMaskReadout.textContent = `Deduction [${chars.join(" ")}]  (fillMask=0b${lineRes.forcedFilledMask.toString(2).padStart(len, "0")})`;
+        document.getElementById("outConfigs").textContent = `${lineRes.validConfigurations} config${lineRes.validConfigurations === 1 ? "" : "s"}`;
+      }
+
+      document.getElementById("outUnique").textContent = solved.unique
+        ? "Unique (1 solution)"
+        : `Ambiguous (${solved.solutionCount}+)`;
+      document.getElementById("outLineSolvable").textContent = solved.lineSolvable
+        ? "true (0 guesses)"
+        : `false (${solved.unresolvedAfterLinePass} open)`;
+      document.getElementById("outSteps").textContent = `${solved.lineDeductionSteps} steps`;
+    }
+
+    [nonogramPreset, lineLenInput, lineCluesInput].forEach((el) => {
+      el.addEventListener("input", renderNonogramVerifier);
+      el.addEventListener("change", renderNonogramVerifier);
+    });
+    renderNonogramVerifier();
+  </script>
+</body>
+</html>
