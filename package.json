@@ -1,7 +1,7 @@
 {
   "name": "grid-and-fretwork-math",
-  "version": "1.0.0",
-  "description": "Zero-dependency JavaScript/Node.js solvers for 32-bit bitmask Nonogram line deduction, uniqueness verification, 2D BFS scroll-saw/stencil floating-island bridge synthesis, and 3-tooth scroll saw blade sizing.",
+  "version": "1.1.0",
+  "description": "Zero-dependency JavaScript/Node.js solvers for 31-bit bitmask Nonogram deduction, mid-game lookahead contradiction proofs, 2D BFS stencil island bridging, 3-tooth blade sizing, and vector PDF /ToUnicode + 1:1 print tiling.",
   "type": "module",
   "main": "./src/index.mjs",
   "exports": {
@@ -16,6 +16,8 @@
     "picross",
     "bitmask-solver",
     "constraint-propagation",
+    "lookahead-proof",
+    "pdf-tounicode",
     "scroll-saw",
     "fretwork",
     "stencil-bridges",

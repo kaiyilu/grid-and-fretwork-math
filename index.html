@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="index, follow" />
-  <title>Grid &amp; Fretwork Math — Bitmask Nonogram &amp; Stencil BFS</title>
-  <meta name="description" content="Zero-dependency JS solvers for 31-bit bitmask Nonogram line deduction, 2D BFS stencil island auto-bridging, and 3-tooth scroll saw blade sizing. MIT spec." />
+  <title>Grid &amp; Fretwork Math — Nonogram Proofs, Stencil BFS &amp; PDF Spec</title>
+  <meta name="description" content="Zero-dependency JS solvers for 31-bit Nonogram lookahead contradiction proofs, 2D BFS stencil island auto-bridging, 3-tooth blade sizing, and /ToUnicode PDF tiling." />
   <link rel="canonical" href="https://kaiyilu.github.io/grid-and-fretwork-math/" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="Grid &amp; Fretwork Math — Bitmask Nonogram Solvers &amp; 2D BFS Stencil Bridging" />
-  <meta property="og:description" content="Open-source JavaScript equations and interactive verifiers for 31-bit Nonogram uniqueness proofs, 4-connected scroll saw island auto-bridges, and wire-gauge drill sizing." />
+  <meta property="og:title" content="Grid &amp; Fretwork Math — Bitmask Nonogram Proofs, 2D BFS Stencil Bridging &amp; Vector PDF Tiling" />
+  <meta property="og:description" content="Open-source JavaScript equations and interactive verifiers for Nonogram lookahead contradiction traces, 4-connected fretwork bridges, and /ToUnicode 1:1 PDF tiling." />
   <meta property="og:url" content="https://kaiyilu.github.io/grid-and-fretwork-math/" />
   <meta name="twitter:card" content="summary" />
   <script type="application/ld+json">
@@ -18,8 +18,8 @@
     "@graph": [
       {
         "@type": "TechArticle",
-        "headline": "Grid & Fretwork Math: 31-Bit Bitmask Nonogram Deduction, 2D BFS Stencil Island Bridging & Scroll Saw Blade Sizing",
-        "description": "Engineering specification and zero-dependency ES module for uniqueness-verified Nonogram logic grids, 4-connected fretwork dropout detection, Euclidean tab synthesis, and 3-tooth scroll saw blade selection.",
+        "headline": "Grid & Fretwork Math: 31-Bit Nonogram Lookahead Proofs, 2D BFS Stencil Island Bridging & Zero-Dependency /ToUnicode PDF Tiling",
+        "description": "Engineering specification and zero-dependency ES module for mid-game Nonogram continuation and contradiction proofs, 4-connected fretwork dropout detection, 3-tooth scroll saw blade sizing, and bilingual /ToUnicode + 1:1 tiled vector PDFs.",
         "author": {
           "@type": "Person",
           "name": "Kaiyi Lu",
@@ -31,6 +31,7 @@
       {
         "@type": "SoftwareSourceCode",
         "name": "grid-and-fretwork-math",
+        "version": "1.1.0",
         "codeRepository": "https://github.com/kaiyilu/grid-and-fretwork-math",
         "programmingLanguage": "JavaScript",
         "runtimePlatform": "Node.js & Browser ES Modules",
@@ -41,10 +42,18 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "Why use 31-bit signed-safe bitmasks for Nonogram line deduction in JavaScript?",
+            "name": "Why use 31-bit signed-safe bitmasks and cell-by-cell lookahead proofs for Nonograms?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "JavaScript bitwise shift operators cast operands to 32-bit signed two's-complement integers where (1 << 31) overflows negative. Operating on lines up to 31 cells with memoized O(k * N^2) dynamic programming keeps every block shift and forced-cell XOR intersection inside a single CPU register."
+              "text": "JavaScript bitwise shifts coerce numbers to signed 32-bit integers where (1 << 31) overflows negative, so 31-bit masks keep single-line O(k * N^2) intersections inside one CPU register. When single-line overlap stalls on a uniquely solvable board, 1-ply trial assumptions (Reductio ad Absurdum) record exact cell-by-cell propagation steps to a contradicting line (validConfigurations === 0)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do zero-dependency client-side PDFs render CJK titles without bundling megabyte TTF fonts?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Rendering bilingual headers at 4x supersampling on an offscreen HTML5 Canvas and coalescing horizontal and vertical ink runs into compact PDF re f vector rectangles guarantees font-independent visual rendering in minimal Poppler containers, while pairing an invisible (3 Tr) Type0 /Identity-H font and /ToUnicode CMap preserves 100% verbatim text extraction in pdftotext and PyMuPDF."
             }
           },
           {
@@ -53,14 +62,6 @@
             "acceptedAnswer": {
               "@type": "Answer",
               "text": "Two solid pixels touching only diagonally at (x, y) and (x+1, y+1) share a zero-width mathematical vertex. On plywood, hardwood, or Mylar stencil film, the saw kerf severs diagonal point contacts immediately, so structural connectivity requires 4-connected orthogonal adjacency."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "What is the 3-tooth rule for scroll saw blade selection?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "At least 3 blade teeth (and ideally no more than 8) should span the workpiece thickness at all times, giving TPI >= 3 / thicknessIn. Fewer than 3 teeth causes violent upstroke chatter, while excessive TPI packs gullets with sawdust and scorches cherry or maple."
             }
           }
         ]
@@ -431,7 +432,8 @@
             <label for="nonogramPreset">2D Puzzle Uniqueness Benchmark</label>
             <select id="nonogramPreset">
               <option value="anchor10" selected>10&times;10 Maritime Anchor (Line-Solvable &amp; Unique)</option>
-              <option value="heart5">5&times;5 Pixel Heart (Line-Solvable in 9 Steps)</option>
+              <option value="lookahead4">4&times;4 Stalled Zero-Overlap Grid (Unique via Lookahead Proof)</option>
+              <option value="heart5">5&times;5 Pixel Heart (Line-Solvable in 11 Steps)</option>
               <option value="ambiguous6">6&times;6 Switching-Component Frame (Ambiguous: 2 Solutions)</option>
             </select>
           </div>
@@ -489,16 +491,26 @@
 
       <p>Instead of enumerating exponentially many full-line combinations on sparse clues such as <code>[1, 1, 1, 1, 1]</code>, <code>deduceNonogramLine</code> memoizes suffix states <code>(runIdx, startPos)</code> in flat typed arrays (<code>Float64Array</code> / <code>Int32Array</code>), bounding worst-case line complexity to $O(k \cdot N^2)$. When generating puzzles from photos, <code>solveNonogramBitmask</code> verifies both <code>unique === true</code> (eliminating $2 \times 2$ checkerboard switching components) and <code>lineSolvable === true</code> so players never have to guess.</p>
 
-      <pre><code>import { computeNonogramClues, deduceNonogramLine, solveNonogramBitmask } from "./src/index.mjs";
+      <pre><code>import {
+  computeNonogramClues,
+  deduceNonogramLine,
+  solveNonogramBitmask,
+  proveNonogramLookaheadStep,
+  encodePdfToUnicodeCMap,
+  mergeBinaryInkScanlines,
+  computeTrueScalePrintTiles,
+} from "./src/index.mjs";
 
 // 1D overlap deduction: clue [6, 2] on a 10-cell line has only 3 valid placements
 const d = deduceNonogramLine(10, [6, 2]);
-// d.forcedFilledMask => 0b0100111100 (cells 2,3,4,5 and cell 8 are 100% forced!)
 
-// 2D uniqueness &amp; pure deterministic line-solvability audit
-const { rowClues, colClues } = computeNonogramClues(pixelGrid);
-const proof = solveNonogramBitmask(rowClues, colClues);
-// proof => { solvable: true, unique: true, lineSolvable: true, solutionCount: 1, ... }</code></pre>
+// Mid-game partial state continuation &amp; cell-by-cell Reductio ad Absurdum proof
+const lookahead = proveNonogramLookaheadStep([[2], [2], [2], [1]], [[1, 1], [2], [2], [1]]);
+// lookahead.targetCell =&gt; { label: "R1C1", assumedState: -1, provenState: 1 } (4 subSteps)
+
+// Bilingual /ToUnicode CMap + 4x supersampled vector glyph scanlines + 1:1 US Letter/A4 tiles
+const cmap = encodePdfToUnicodeCMap("数织复测 Portrait 20");
+const tiles = computeTrueScalePrintTiles(14, 18, "letter"); // 2x2 = 4 sheets (540x691.2 pt safe area)</code></pre>
     </section>
 
     <section>
@@ -634,7 +646,7 @@ if (audit.islandCount &gt; 0) {
         </a>
         <a class="tool-card" href="https://nonogramgrid.com/nonogram-generator/">
           <strong>Nonogram Generator &rarr;</strong>
-          <span>Convert any photo or pixel sprite into a guaranteed single-solution Nonogram with automatic switching-component repair.</span>
+          <span>Photo-to-nonogram studio with 3 detail modes (Clean Silhouette, Sharp Contours, Portrait Dither) and multi-solution export guard.</span>
         </a>
         <a class="tool-card" href="https://nonogramgrid.com/daily-nonogram/">
           <strong>Daily Nonogram Puzzle &rarr;</strong>
@@ -642,11 +654,11 @@ if (audit.islandCount &gt; 0) {
         </a>
         <a class="tool-card" href="https://nonogramgrid.com/printable-nonogram-puzzles/">
           <strong>Printable Nonogram Puzzles &rarr;</strong>
-          <span>High-DPI vector PDF puzzle sheets and classroom booklet packs with pre-computed run-length clue headers.</span>
+          <span>1–30 puzzle progressive Mix 5&rarr;20 vector PDF booklets (US Letter &amp; A4, separate teacher answer keys, bilingual CJK /ToUnicode titles).</span>
         </a>
         <a class="tool-card" href="https://nonogramgrid.com/nonogram-solver/">
           <strong>Nonogram Solver &rarr;</strong>
-          <span>Step-by-step bitmask constraint debugger explaining exact forced block overlaps and cross-out deductions.</span>
+          <span>Mid-game partial-state continuation (5&times;5–20&times;20 + bulk clue paste) with cell-by-cell lookahead contradiction proofs.</span>
         </a>
       </div>
 
@@ -654,11 +666,11 @@ if (audit.islandCount &gt; 0) {
       <div class="tool-grid">
         <a class="tool-card" href="https://scrollsawpatterngenerator.com/">
           <strong>Scroll Saw Pattern Generator &rarr;</strong>
-          <span>Turn portraits and wildlife photos into 1:1 fretwork SVGs with 2D BFS dropout alerts, 1-click bridges, and #58 drill marks.</span>
+          <span>1:1 calibrated US Letter &amp; A4 vector tiled PDF downloads, floating-island export guard + 1-click auto-bridging, and #58 drill marks.</span>
         </a>
         <a class="tool-card" href="https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/">
           <strong>Scroll Saw Name Pattern Maker &rarr;</strong>
-          <span>Connected script and block name plaques that automatically weld floating letter counters (a, e, o, B) to the base rail.</span>
+          <span>Bilingual structurally welded script and block name plaques that auto-bridge floating letter counters to the base rail.</span>
         </a>
         <a class="tool-card" href="https://scrollsawpatterngenerator.com/stencil-maker-from-photo/">
           <strong>Stencil Maker From Photo &rarr;</strong>
@@ -682,7 +694,7 @@ if (audit.islandCount &gt; 0) {
 cd grid-and-fretwork-math
 node --test
 node ./src/index.mjs</code></pre>
-      <p>For a full architectural walkthrough of how these algorithms power browser-native Canvas2D and SVG editors, read the companion article: <a href="https://dev.to/kaiyilu/bitmask-nonogram-line-solvers-2d-bfs-stencil-island-bridging-in-pure-typescript-194d">Bitmask Nonogram Line Solvers &amp; 2D BFS Stencil Island Bridging in Pure TypeScript</a>.</p>
+      <p>For full architectural walkthroughs of how these algorithms power browser-native Canvas2D, SVG, and `%PDF-1.4` generators, read the companion articles: <a href="https://dev.to/kaiyilu/zero-dependency-bilingual-vector-pdfs-tounicode-4x-scanlines-nonogram-contradiction-proofs-19e5">Zero-Dependency Bilingual Vector PDFs (/ToUnicode + 4x Scanlines) &amp; Nonogram Contradiction Proofs in TypeScript</a> and <a href="https://dev.to/kaiyilu/bitmask-nonogram-line-solvers-2d-bfs-stencil-island-bridging-in-pure-typescript-194d">Bitmask Nonogram Line Solvers &amp; 2D BFS Stencil Island Bridging in Pure TypeScript</a>.</p>
     </section>
   </main>
 
@@ -695,6 +707,7 @@ node ./src/index.mjs</code></pre>
       computeNonogramClues,
       deduceNonogramLine,
       solveNonogramBitmask,
+      proveNonogramLookaheadStep,
       detectFloatingIslands,
       autoBridgeIslands,
       recommendScrollSawBlade,
@@ -862,6 +875,12 @@ node ./src/index.mjs</code></pre>
         [0, 1, 1, 1, 0],
         [0, 0, 1, 0, 0],
       ]),
+      lookahead4: {
+        rows: 4,
+        cols: 4,
+        rowClues: [[2], [2], [2], [1]],
+        colClues: [[1, 1], [2], [2], [1]],
+      },
       ambiguous6: {
         rows: 6,
         cols: 6,
@@ -900,6 +919,12 @@ node ./src/index.mjs</code></pre>
       if (solved.unique && solved.lineSolvable) {
         nonogramBanner.className = "status-banner status-ok";
         nonogramBanner.textContent = `Verified Unique & Purely Line-Solvable (${R}×${C}) — 0 bifurcation guesses needed.`;
+      } else if (solved.unique) {
+        const proof = proveNonogramLookaheadStep(bench.rowClues, bench.colClues);
+        nonogramBanner.className = "status-banner status-ok";
+        nonogramBanner.textContent = proof.found
+          ? `Unique via 1-Ply Lookahead Proof (${R}×${C}): ${proof.explanation}`
+          : `Verified Unique (${R}×${C}) via bounded branch-and-bound.`;
       } else {
         nonogramBanner.className = "status-banner status-warn";
         nonogramBanner.textContent = `Switching Component Detected: ${solved.solutionCount} distinct valid solutions (${solved.unresolvedAfterLinePass} cells ambiguous under line logic).`;

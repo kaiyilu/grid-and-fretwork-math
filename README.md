@@ -1,10 +1,10 @@
-# Grid & Fretwork Math: 31-Bit Bitmask Nonogram Solvers & 2D BFS Stencil Island Bridging
+# Grid & Fretwork Math: 31-Bit Bitmask Nonogram Proofs, 2D BFS Stencil Bridging & Vector PDF Tiling
 
-Zero-dependency JavaScript / Node.js discrete grid solvers for **uniqueness-verified Nonogram picture logic puzzles**, **scroll-saw & vinyl stencil floating-island dropout detection**, **shortest-Euclidean structural tab synthesis**, and **3-tooth scroll saw blade & wire-gauge drill sizing**.
+Zero-dependency JavaScript / Node.js discrete grid and print-geometry solvers for **uniqueness-verified Nonogram picture logic puzzles (with mid-game continuation & cell-by-cell lookahead contradiction proofs)**, **scroll-saw & vinyl stencil floating-island dropout detection**, **shortest-Euclidean structural tab synthesis**, **3-tooth scroll saw blade & wire-gauge drill sizing**, and **zero-font-payload bilingual `/ToUnicode` vector PDF scanline merging + 1:1 US Letter / A4 poster tiling**.
 
 - **Interactive Field Guide & Live Verifier**: [https://kaiyilu.github.io/grid-and-fretwork-math/](https://kaiyilu.github.io/grid-and-fretwork-math/)
 - **Source Module**: [`./src/index.mjs`](./src/index.mjs) (Pure ES Module, `0` npm dependencies, browser & Node.js 18+)
-- **Run Unit Tests**: `node --test` (`7` passing `node:test` suites)
+- **Run Unit Tests**: `node --test` (`11` passing `node:test` suites)
 - **Run CLI Demo**: `node ./src/index.mjs`
 
 ---
@@ -37,12 +37,13 @@ Given a line of length $N \le 31$, ordered contiguous block clues $R = [r_0, r_1
 3. **Exact Forced Intersection via De Morgan Complement**: Accumulating bitwise unions $U_{\text{fill}}$ and $U_{\text{empty}}$ across all valid suffix completions yields every cell invariant across 100% of admissible configurations in a single XOR:
    $$F_{\text{fill}} = (2^N - 1) \oplus U_{\text{empty}}, \qquad F_{\text{empty}} = (2^N - 1) \oplus U_{\text{fill}}$$
 
-### 2. Iterative Queue Propagation & Uniqueness Proof (`solveNonogramBitmask`)
+### 2. Iterative Queue Propagation, Mid-Game Continuation & Lookahead Contradiction Proofs (`solveNonogramBitmask`, `proveNonogramLookaheadStep`)
 
-`solveNonogramBitmask(rowClues, colClues)` maintains dirty bitqueues over rows and columns. Whenever row $r$ deduces $\Delta_{\text{fill}}$ or $\Delta_{\text{empty}}$, only affected column indices $c$ with $(\Delta_{\text{fill}} \lor \Delta_{\text{empty}}) \land 2^c \neq 0$ are re-queued.
+`solveNonogramBitmask(rowClues, colClues, { maxSolutions, partialGrid })` maintains dirty bitqueues over rows and columns, optionally seeded from a mid-game `partialGrid` (`1` = filled `■`, `-1` = crossed `×`, `0` = unknown) so solvers continue from half-finished boards without restarting from blank.
 
 - If queue exhaustion resolves all $R \times C$ cells (`unresolvedAfterLinePass === 0`), the puzzle is proven **purely human line-solvable** (`lineSolvable: true`, `unique: true`) with zero trial-and-error bifurcation.
-- Otherwise, minimum-entropy backtracking branches on the unresolved line with minimum `validConfigurations`, capping search at `maxSolutions = 2` to distinguish uniquely solvable grids (`solutionCount === 1`) from ambiguous switching components (`solutionCount >= 2`).
+- When single-line bitmask DP stalls on a uniquely solvable puzzle, `proveNonogramLookaheadStep(rowClues, colClues, partialGrid)` runs 1-ply `Reductio ad Absurdum` trial assumptions (`Assume RrCc = ×` or `■`) and selects the shortest contradiction cascade, returning numbered `subSteps` (`[{ stepNumber, axis, lineIndex, forcedFilledIndices, forcedEmptyIndices, validConfigurations, contradiction, reason }]`) culminating in the exact contradicting row/column (`validConfigurations === 0`).
+- Minimum-entropy backtracking caps search at `maxSolutions = 2` to block ambiguous $2 \times 2$ switching components (`solutionCount >= 2`) before exporting photo-generated grids.
 
 ### 3. 2D 4-Connected BFS Dropout Audit & Multi-Hop Euclidean Bridging (`detectFloatingIslands`, `autoBridgeIslands`)
 
@@ -71,20 +72,26 @@ $$\text{TPI}_{\min} = \frac{3}{t_{\text{in}}}, \qquad N_{\text{teeth}} = t_{\tex
 | `#9` | `0.053"` (`1.35 mm`) | `0.019"` (`0.48 mm`) | `11` | `0.273"` (`3/4"`–`1.25"`) | `#50` (`0.070"` / `1.78 mm`) | `5/64"` (`0.078"`) | `3/4"`–`1.25"` dense hardwood & intarsia |
 | `#12` | `0.062"` (`1.57 mm`) | `0.024"` (`0.61 mm`) | `9.5` | `0.316"` (`1.25"`–`2.0"`) | `#44` (`0.086"` / `2.18 mm`) | `3/32"` (`0.094"`) | `1.5"`–`2.0"` compound 3D cuts & thick hardwood |
 
+### 5. Zero-Dependency Vector PDF `/ToUnicode` CMap, 2D Scanline Coalescing & 1:1 Print Tiling (`encodePdfToUnicodeCMap`, `mergeBinaryInkScanlines`, `computeTrueScalePrintTiles`)
+
+1. **2D Supersampled Glyph Scanline Coalescing (`mergeBinaryInkScanlines`)**: Merges `4×` supersampled (`0.25 pt`) offscreen `<canvas>` glyph bitmaps horizontally along each scanline and vertically across identical `[x0, x1]` spans into compact `%PDF-1.4` `x y w h re f` vector rectangles—rendering bilingual/CJK titles crisply in minimal Linux `Poppler` (`pdftoppm`) containers with zero installed CJK fonts and `0 kB` `.ttf` bundle overhead.
+2. **Searchable `Type0` `/Identity-H` `/ToUnicode` CMap (`encodePdfToUnicodeCMap`)**: Pairs an invisible (`3 Tr`) composite font layer with an `Adobe-Identity-UCS` CMap stream (`<= 100` entries per `beginbfchar` block, 4-hex BMP codes + 8-hex UTF-16BE surrogate pairs for supplementary code points) so `pdftotext` and `PyMuPDF` extract CJK/Unicode strings 100% verbatim.
+3. **1:1 Calibrated Sheet Tiling (`computeTrueScalePrintTiles`)**: Partitions physical patterns into margin-safe `72 pt/in` windows on **US Letter** (`7.5" × 9.6"` / `540 × 691.2 pt` inside `612 × 792 pt`) and **ISO A4** (`7.25" × 10.4"` / `184 × 264 mm` / `522 × 748.8 pt` inside `595.28 × 841.89 pt`).
+
 ---
 
 ## Production Browser Implementations (100% Client-Side, Zero Login)
 
 ### Nonogram Picture Logic Suite (`nonogramgrid.com`)
 - **[Nonogram Puzzle](https://nonogramgrid.com/)** — Interactive `5×5` through `20×20` picture logic studio powered by bitmask uniqueness verification and step-by-step logical hints.
-- **[Nonogram Generator](https://nonogramgrid.com/nonogram-generator/)** — Converts uploaded images or pixel art into guaranteed single-solution Nonograms by automatically repairing ambiguous $2 \times 2$ switching components.
+- **[Nonogram Generator](https://nonogramgrid.com/nonogram-generator/)** — Photo-to-nonogram converter with 3 detail modes (`Clean Silhouette`, `Sharp Contours`, `Portrait Dither`) and a multi-solution switching-component export guard.
 - **[Daily Nonogram Puzzle](https://nonogramgrid.com/daily-nonogram/)** — Seeded deterministic daily grid challenges verified for pure line-by-line human solvability.
-- **[Printable Nonogram Puzzles](https://nonogramgrid.com/printable-nonogram-puzzles/)** — Crisp vector PDF puzzle booklets with pre-computed row/column clue headers and answer keys.
-- **[Nonogram Solver](https://nonogramgrid.com/nonogram-solver/)** — Interactive bitmask line deduction debugger explaining exact forced overlaps and empty cross-outs step by step.
+- **[Printable Nonogram Puzzles](https://nonogramgrid.com/printable-nonogram-puzzles/)** — `1–30` puzzle progressive `Mix 5->20` vector PDF booklets (US Letter & A4, separate teacher answer keys, and bilingual CJK `/ToUnicode` titles).
+- **[Nonogram Solver](https://nonogramgrid.com/nonogram-solver/)** — Mid-game partial-state continuation (`5×5–20×20` + bulk clue paste) and cell-by-cell lookahead contradiction proofs.
 
 ### Scroll Saw, Stencil & Pyrography CAD Suite (`scrollsawpatterngenerator.com`)
-- **[Scroll Saw Pattern Generator](https://scrollsawpatterngenerator.com/)** — Converts photos into cut-ready wood fretwork SVGs with 2D BFS dropout island highlighting, 1-click auto-bridging, and `#58` pilot drill marks.
-- **[Scroll Saw Name Pattern Maker](https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/)** — Generates structurally welded script & block lettering plaques where interior counters (`a`, `e`, `o`, `g`) auto-bridge to the base rail.
+- **[Scroll Saw Pattern Generator](https://scrollsawpatterngenerator.com/)** — 1:1 calibrated US Letter & A4 vector tiled PDF downloads, floating-island export guard + 1-click auto-bridging, and `#58` pilot drill marks.
+- **[Scroll Saw Name Pattern Maker](https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/)** — Bilingual structurally welded script & block name plaques where interior letter counters auto-bridge to the base rail.
 - **[Stencil Maker From Photo](https://scrollsawpatterngenerator.com/stencil-maker-from-photo/)** — Multi-island Mylar, airbrush, and Cricut stencil bridge synthesizer guaranteeing single-sheet physical connectivity.
 - **[Wood Burning Pattern Generator](https://scrollsawpatterngenerator.com/wood-burning-pattern-generator/)** — Edge-preserving line art, 3-tone pyrography heat-shading maps, and horizontal mirror iron-on transfer sheets.
 - **[Scroll Saw Blade Chart](https://scrollsawpatterngenerator.com/scroll-saw-blade-chart/)** — Interactive thickness, wood hardness, SPM speed, and numbered wire-gauge pilot drill calculator.
@@ -105,31 +112,33 @@ import {
   computeNonogramClues,
   deduceNonogramLine,
   solveNonogramBitmask,
+  proveNonogramLookaheadStep,
   detectFloatingIslands,
   autoBridgeIslands,
   recommendScrollSawBlade,
+  encodePdfToUnicodeCMap,
+  mergeBinaryInkScanlines,
+  computeTrueScalePrintTiles,
 } from "./src/index.mjs";
 
-// 1. Bitmask Nonogram line deduction & full uniqueness proof
-const line = deduceNonogramLine(10, [6]);
-// line.forcedFilledMask => 0b0000110000 (cells 4 & 5 forced across all 5 placements)
+// 1. Mid-game Nonogram continuation & lookahead Reductio ad Absurdum proof
+const proof = proveNonogramLookaheadStep(
+  [[2], [2], [2], [1]],
+  [[1, 1], [2], [2], [1]]
+);
+// proof.targetCell => { row: 0, col: 0, label: "R1C1", assumedState: -1, provenState: 1 }
 
-const clues = computeNonogramClues([
-  [0, 1, 0, 1, 0],
-  [1, 1, 1, 1, 1],
-  [0, 1, 1, 1, 0],
-  [0, 0, 1, 0, 0],
-]);
-const solved = solveNonogramBitmask(clues.rowClues, clues.colClues);
-// { solvable: true, unique: true, lineSolvable: true, solutionCount: 1, ... }
+// 2. Bilingual /ToUnicode CMap + 4x supersampled glyph scanline merging + 1:1 tiling
+const cmap = encodePdfToUnicodeCMap("数织复测 Portrait 20");
+const tiles = computeTrueScalePrintTiles(14, 18, "letter"); // 2x2 = 4 US Letter sheets
 
-// 2. 2D 4-connected BFS stencil island audit & shortest-Euclidean bridging
+// 3. 2D 4-connected BFS stencil island audit & shortest-Euclidean bridging
 const audit = detectFloatingIslands(stencilMask, 64, 64);
 if (audit.islandCount > 0) {
   const { bridgedMask, bridgesAdded } = autoBridgeIslands(stencilMask, 64, 64, 1);
 }
 
-// 3. 3-tooth scroll saw blade & numbered wire-gauge pilot drill recommendation
+// 4. 3-tooth scroll saw blade & numbered wire-gauge pilot drill recommendation
 const setup = recommendScrollSawBlade({
   thicknessIn: 0.25,
   isHardwood: false,
@@ -148,11 +157,16 @@ const setup = recommendScrollSawBlade({
 ✔ detectFloatingIslands flags interior unanchored islands and rejects diagonal-only corners
 ✔ autoBridgeIslands welds nested concentric stencil rings into a single 4-connected component
 ✔ recommendScrollSawBlade enforces TPI >= 3 / thicknessIn and maps numbered wire-gauge pilot drills
-ℹ tests 7 | pass 7 | fail 0
+✔ mid-game partialGrid continuation deduces forced crosses and fills without restarting from blank
+✔ proveNonogramLookaheadStep emits numbered cell-by-cell subSteps and exact contradiction line
+✔ encodePdfToUnicodeCMap & mergeBinaryInkScanlines build UTF-16BE CMap streams and coalesce 2D glyph runs
+✔ computeTrueScalePrintTiles calculates 1:1 US Letter and ISO A4 poster sheets at 72 pt/in
+ℹ tests 11 | pass 11 | fail 0
 ```
 
 ## Further Reading
 
+- [Zero-Dependency Bilingual Vector PDFs (/ToUnicode + 4x Scanlines) & Nonogram Contradiction Proofs in TypeScript](https://dev.to/kaiyilu/zero-dependency-bilingual-vector-pdfs-tounicode-4x-scanlines-nonogram-contradiction-proofs-19e5) — Hybrid `4×` scanline + `3 Tr` `/ToUnicode` PDF architecture, `1:1` US Letter / A4 poster tiling, mid-game partial board continuation, and cell-by-cell `Reductio ad Absurdum` proofs.
 - [Bitmask Nonogram Line Solvers & 2D BFS Stencil Island Bridging in Pure TypeScript](https://dev.to/kaiyilu/bitmask-nonogram-line-solvers-2d-bfs-stencil-island-bridging-in-pure-typescript-194d) — Deep dive into 31-bit DP line propagation, $2 \times 2$ switching-component elimination, and multi-hop distance-transform stencil bridging.
 
 ## License

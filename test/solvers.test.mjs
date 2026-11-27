@@ -5,10 +5,14 @@ import {
   computeNonogramClues,
   deduceNonogramLine,
   solveNonogramBitmask,
+  proveNonogramLookaheadStep,
   detectFloatingIslands,
   autoBridgeIslands,
   recommendScrollSawBlade,
   SCROLL_SAW_BLADE_TABLE,
+  encodePdfToUnicodeCMap,
+  mergeBinaryInkScanlines,
+  computeTrueScalePrintTiles,
 } from "../src/index.mjs";
 
 test("computeNonogramClues extracts exact row and column run-length clues including [0] empty lines", () => {
@@ -193,4 +197,148 @@ test("recommendScrollSawBlade enforces TPI >= 3 / thicknessIn and maps numbered 
   assert.equal(compoundCut.bladeSize, "#12");
   assert.equal(compoundCut.pilotDrillGauge, "#44");
   assert.ok(compoundCut.engagedTeeth >= 3);
+});
+
+test("mid-game partialGrid continuation deduces forced crosses and fills without restarting from blank", () => {
+  // 5x5 permutation grid where every row & column clue is [1]: blank board deduces 0 cells
+  const onesClues = [[1], [1], [1], [1], [1]];
+  const blank = solveNonogramBitmask(onesClues, onesClues);
+  assert.equal(blank.unresolvedAfterLinePass, 25);
+  assert.equal(blank.lineDeductionSteps, 0);
+
+  // Marking R1C1 = ■ (1) immediately forces × (-1) across R1C2..R1C5 and R2C1..R5C1
+  const partialWithFill = [
+    [1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ];
+  const afterR1C1 = solveNonogramBitmask(onesClues, onesClues, {
+    partialGrid: partialWithFill,
+  });
+  assert.equal(afterR1C1.unresolvedAfterLinePass, 16);
+  assert.deepEqual(afterR1C1.lineSolvedGrid[0], [1, -1, -1, -1, -1]);
+  for (let r = 1; r < 5; r++) {
+    assert.equal(afterR1C1.lineSolvedGrid[r][0], -1);
+  }
+
+  // Marking R1C2 = × (-1) on a 5x5 row with clue [3] makes R1C1 unreachable (forced ×) and forces R1C3..R1C5 = ■
+  const rowClues = [[3], [1], [1], [1], [1]];
+  const colClues = [[1], [1], [1], [2], [2]];
+  const partialWithCross = [
+    [0, -1, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+  ];
+  const cont = proveNonogramLookaheadStep(rowClues, colClues, partialWithCross);
+  assert.equal(cont.lineSolvedGrid[0][0], -1); // R1C1 forced × because [3] cannot fit left of R1C2=×
+  assert.deepEqual(cont.lineSolvedGrid[0], [-1, -1, 1, 1, 1]);
+});
+
+test("proveNonogramLookaheadStep emits numbered cell-by-cell subSteps and exact contradiction line", () => {
+  // Uniquely solvable 4x4 Nonogram where every single row and column has 0 initial 1D overlap!
+  const rowClues = [[2], [2], [2], [1]];
+  const colClues = [[1, 1], [2], [2], [1]];
+
+  const checkUnique = solveNonogramBitmask(rowClues, colClues);
+  assert.equal(checkUnique.solvable, true);
+  assert.equal(checkUnique.unique, true);
+  assert.equal(checkUnique.lineSolvable, false);
+  assert.equal(checkUnique.unresolvedAfterLinePass, 16);
+
+  const proof = proveNonogramLookaheadStep(rowClues, colClues);
+  assert.equal(proof.found, true);
+  assert.ok(proof.targetCell !== null);
+  assert.ok(proof.subSteps.length >= 2);
+
+  // Verify sequential 1..N step numbering and validConfigurations === 0 on the final contradiction step
+  proof.subSteps.forEach((step, idx) => {
+    assert.equal(step.stepNumber, idx + 1);
+    assert.ok(step.axis === "row" || step.axis === "col");
+  });
+
+  const finalStep = proof.subSteps[proof.subSteps.length - 1];
+  assert.equal(finalStep.contradiction, true);
+  assert.equal(finalStep.validConfigurations, 0);
+  assert.equal(proof.contradictionLine.validConfigurations, 0);
+  assert.equal(finalStep.axis, proof.contradictionLine.axis);
+  assert.equal(finalStep.lineIndex, proof.contradictionLine.lineIndex);
+
+  // Proven state at targetCell matches the unique global solution and cascades to solve all 16 cells
+  const expectedBool = checkUnique.solution[proof.targetCell.row][proof.targetCell.col];
+  assert.equal(proof.targetCell.provenState, expectedBool ? 1 : -1);
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      assert.equal(proof.deducedGrid[r][c], checkUnique.solution[r][c] ? 1 : -1);
+    }
+  }
+});
+
+test("encodePdfToUnicodeCMap & mergeBinaryInkScanlines build UTF-16BE CMap streams and coalesce 2D glyph runs", () => {
+  // Bilingual + astral emoji title ("数织 🧩 A")
+  const cmap = encodePdfToUnicodeCMap("数织 🧩 A");
+  assert.equal(cmap.entries.length, 5); // '数', '织', ' ', '🧩', 'A'
+  assert.match(cmap.cmapStream, /begincodespacerange\n<0000> <FFFF>\nendcodespacerange/);
+  assert.match(cmap.cmapStream, /<0001> <6570>/); // '数' U+6570
+  assert.match(cmap.cmapStream, /<0002> <7EC7>/); // '织' U+7EC7
+  assert.match(cmap.cmapStream, /<0004> <D83EDDE9>/); // '🧩' U+1F9E9 UTF-16BE surrogate pair
+  assert.equal(cmap.encodeStringToCidHex("数织"), "00010002");
+
+  // 8x6 supersampled glyph bitmap (scale = 4 => 2.0pt x 1.5pt):
+  // Top 2 rows: full bar x=0..8 (16 px -> merges into 1 rect of 2.0 x 0.5 pt)
+  // Bottom 4 rows: vertical stem x=2..6 (16 px -> merges into 1 rect of 1.0 x 1.0 pt)
+  const ink = [
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    0, 0, 1, 1, 1, 1, 0, 0,
+  ];
+  const merged = mergeBinaryInkScanlines(ink, 8, 6, 4);
+  assert.equal(merged.rawInkPixelCount, 32);
+  assert.equal(merged.horizontalRunCount, 6);
+  assert.equal(merged.mergedRectCount, 2);
+  assert.deepEqual(
+    merged.rects.map(({ x, yTop, yPdf, w, h }) => ({ x, yTop, yPdf, w, h })),
+    [
+      { x: 0, yTop: 0, yPdf: 1, w: 2, h: 0.5 },
+      { x: 0.5, yTop: 0.5, yPdf: 0, w: 1, h: 1 },
+    ]
+  );
+  assert.equal(merged.pdfPathOps, "0 1 2 0.5 re 0.5 0 1 1 re f");
+});
+
+test("computeTrueScalePrintTiles calculates 1:1 US Letter and ISO A4 poster sheets at 72 pt/in", () => {
+  // 14" x 18" scroll-saw plaque on US Letter (7.5" x 9.6" safe window => 2 cols x 2 rows = 4 sheets)
+  const letter = computeTrueScalePrintTiles(14, 18, "letter");
+  assert.equal(letter.sheetWidthPt, 612);
+  assert.equal(letter.sheetHeightPt, 792);
+  assert.equal(letter.safeWidthIn, 7.5);
+  assert.equal(letter.safeHeightIn, 9.6);
+  assert.equal(letter.safeWidthPt, 540);
+  assert.equal(letter.safeHeightPt, 691.2);
+  assert.equal(letter.cols, 2);
+  assert.equal(letter.rows, 2);
+  assert.equal(letter.totalSheets, 4);
+  assert.equal(letter.tiles[0].gridLabel, "R1C1");
+  assert.equal(letter.tiles[0].sourceBoundsPt.width, 540);
+  assert.equal(letter.tiles[3].gridLabel, "R2C2");
+  assert.equal(letter.tiles[3].sourceBoundsIn.width, 6.5);
+  assert.equal(letter.tiles[3].sourceBoundsIn.height, 8.4);
+
+  // 14" x 22" pattern on ISO A4 (7.25" x 10.4" / 184x264mm safe window => 2 cols x 3 rows = 6 sheets)
+  const a4 = computeTrueScalePrintTiles(14, 22, "a4");
+  assert.equal(a4.sheetWidthPt, 595.28);
+  assert.equal(a4.sheetHeightPt, 841.89);
+  assert.equal(a4.safeWidthIn, 7.25);
+  assert.equal(a4.safeHeightIn, 10.4);
+  assert.equal(a4.safeWidthMm, 184);
+  assert.equal(a4.safeHeightMm, 264);
+  assert.equal(a4.cols, 2);
+  assert.equal(a4.rows, 3);
+  assert.equal(a4.totalSheets, 6);
 });
