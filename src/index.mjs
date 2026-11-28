@@ -5,10 +5,24 @@
  *  2. 2D 4-Connected BFS Stencil / Fretwork Floating-Island Detection & Euclidean Auto-Bridging
  *  3. 3-Tooth Engagement Scroll Saw Blade & Wire-Gauge Pilot Drill Sizing
  *  4. Zero-Dependency Vector PDF /ToUnicode CMap, 2D Scanline Glyph Merging & 1:1 Tiled Print Geometry
+ *  5. Half-Pixel (2W+1)×(2H+1) Felzenszwalb-Huttenlocher EDT Pinhole Sealing, 4-Connected Marching Squares & 40 px/in Cut-to-Cut Calibration
  *
  * License: MIT
  * Repository: https://github.com/kaiyilu/grid-and-fretwork-math
  */
+
+export {
+  perpendicularSegmentDistance,
+  polygonSignedArea2D,
+  pointInPolygon2D,
+  traceBinaryMaskToContourLoops,
+  traceBinaryMaskToSvgPath,
+  computeHalfPixelEdt,
+  maxInscribedCircleInContourHole,
+  resolveInteriorCutoutsAndSealPinholes,
+  measureContourOuterBounds,
+  calibrateCutToCutPlaqueBounds,
+} from "./contourAndEdt.mjs";
 
 /* ============================================================================
  * PART 1: 31-BIT BITMASK NONOGRAM CLUE EXTRACTION, LINE DP & GRID SOLVER

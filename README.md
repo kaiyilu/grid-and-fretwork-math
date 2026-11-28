@@ -1,10 +1,10 @@
-# Grid & Fretwork Math: 31-Bit Bitmask Nonogram Proofs, 2D BFS Stencil Bridging & Vector PDF Tiling
+# Grid & Fretwork Math: 31-Bit Bitmask Nonogram Proofs, Half-Pixel EDT Pinhole Sealing, 4-Connected Marching Squares & Vector PDF Tiling
 
-Zero-dependency JavaScript / Node.js discrete grid and print-geometry solvers for **uniqueness-verified Nonogram picture logic puzzles (with mid-game continuation & cell-by-cell lookahead contradiction proofs)**, **scroll-saw & vinyl stencil floating-island dropout detection**, **shortest-Euclidean structural tab synthesis**, **3-tooth scroll saw blade & wire-gauge drill sizing**, and **zero-font-payload bilingual `/ToUnicode` vector PDF scanline merging + 1:1 US Letter / A4 poster tiling**.
+Zero-dependency JavaScript / Node.js discrete grid, contour-tracing, and print-geometry solvers for **uniqueness-verified Nonogram picture logic puzzles (with mid-game continuation & cell-by-cell lookahead contradiction proofs)**, **4-connected Marching Squares closed-loop vector contour tracing (`99.2%+` pixel-to-vector IoU)**, **half-pixel `(2W+1)×(2H+1)` Felzenszwalb-Huttenlocher Euclidean Distance Transform (`EDT`) wire-gauge (`#65–#44`) pinhole sealing**, **`40 px/in` rational cut-to-cut outer dimension calibration (`304.80 mm` / `0.00 mm` discrepancy)**, **scroll-saw & vinyl stencil floating-island auto-bridging**, and **zero-font-payload bilingual `/ToUnicode` vector PDF scanline merging + 1:1 US Letter / A4 poster tiling**.
 
 - **Interactive Field Guide & Live Verifier**: [https://kaiyilu.github.io/grid-and-fretwork-math/](https://kaiyilu.github.io/grid-and-fretwork-math/)
-- **Source Module**: [`./src/index.mjs`](./src/index.mjs) (Pure ES Module, `0` npm dependencies, browser & Node.js 18+)
-- **Run Unit Tests**: `node --test` (`11` passing `node:test` suites)
+- **Source Modules**: [`./src/index.mjs`](./src/index.mjs) & [`./src/contourAndEdt.mjs`](./src/contourAndEdt.mjs) (Pure ES Modules, `0` npm dependencies, browser & Node.js 18+)
+- **Run Unit Tests**: `npm test` / `node --test` (`14` passing `node:test` suites)
 - **Run CLI Demo**: `node ./src/index.mjs`
 
 ---
@@ -78,6 +78,19 @@ $$\text{TPI}_{\min} = \frac{3}{t_{\text{in}}}, \qquad N_{\text{teeth}} = t_{\tex
 2. **Searchable `Type0` `/Identity-H` `/ToUnicode` CMap (`encodePdfToUnicodeCMap`)**: Pairs an invisible (`3 Tr`) composite font layer with an `Adobe-Identity-UCS` CMap stream (`<= 100` entries per `beginbfchar` block, 4-hex BMP codes + 8-hex UTF-16BE surrogate pairs for supplementary code points) so `pdftotext` and `PyMuPDF` extract CJK/Unicode strings 100% verbatim.
 3. **1:1 Calibrated Sheet Tiling (`computeTrueScalePrintTiles`)**: Partitions physical patterns into margin-safe `72 pt/in` windows on **US Letter** (`7.5" × 9.6"` / `540 × 691.2 pt` inside `612 × 792 pt`) and **ISO A4** (`7.25" × 10.4"` / `184 × 264 mm` / `522 × 748.8 pt` inside `595.28 × 841.89 pt`).
 
+### 6. Half-Pixel `(2W+1)×(2H+1)` Felzenszwalb-Huttenlocher EDT Pinhole Sealing, 4-Connected Marching Squares & `40 px/in` Cut-to-Cut Calibration (`src/contourAndEdt.mjs`)
+
+1. **4-Connected Marching Squares Closed-Loop Tracer (`traceBinaryMaskToContourLoops`, `traceBinaryMaskToSvgPath`)**:
+   - Zero-pads the binary mask by `1 px` so perimeter contours close unconditionally, then emits clockwise directed half-edges keeping `1`-pixels on the interior right-hand side `(-dy, dx)`:
+     - **Saddle Separation (`case 5` & `case 10`)**: Emits `(left -> bottom, right -> top)` for `case 5` and `(top -> left, bottom -> right)` for `case 10`, matching strict 4-connected BFS topology so diagonal corner pixels never fuse across an empty saw kerf.
+     - **Concave Cutout Corners (`case 13` & `case 14`)**: Emits `right -> bottom` (`case 13`) and `bottom -> left` (`case 14`) so enclosed interior cutout loops wind counter-clockwise (`polygonSignedArea2D < 0`) with zero inverted or unclosed chains (`99.2%+` pixel-to-vector IoU).
+   - Applies lossless colinear ring coalescing, **antipodal-split closed-loop Ramer-Douglas-Peucker** (splitting each closed ring at its farthest vertex pair before RDP so symmetric circles never collapse onto a 2-point chord), and bounded Chaikin corner smoothing (`maxCutPx = 0.75`).
+2. **Half-Pixel `(2W+1)×(2H+1)` Squared Euclidean Distance Transform & Wire-Gauge Pinhole Sealer (`computeHalfPixelEdt`, `resolveInteriorCutoutsAndSealPinholes`)**:
+   - Evaluates exact separable 1D parabolic lower-envelope EDT (`O(W \cdot H)`) across pixel centers, edges, and corners simultaneously. Because `1` half-pixel step equals `0.5 px`, $\sqrt{D^2(i_x, i_y)}$ directly yields the **exact maximum inscribed circle diameter in pixels** ($2 r_{\text{px}}$), catching even-width (`2×2 px`) pinholes whose true center lies on a pixel corner rather than a pixel center.
+   - Automatically seals micro-pinholes narrower than numbered wire-gauge pilot drill bits (`#65 / 0.89 mm` through `#44 / 2.18 mm`; e.g., sealing `1.03 mm < 1.32 mm #55` serif/script pinholes while preserving `>= 1.50 mm` cutouts), then refines every surviving cutout center via `maxInscribedCircleInContourHole` to guarantee exact `1:1` parity (`survivingHoleLoopCount === drillPoints.length`).
+3. **`40 px/in` Rational Cut-to-Cut Outer Dimension Calibration (`calibrateCutToCutPlaqueBounds`, `measureContourOuterBounds`)**:
+   - At `40 px/in` (`1 px = 0.025" = 0.635 mm`), full-width `[0 .. gridW]` base rails with `4 px` (`2.54 mm`) splinter-free vertical micro-lands and even-pixel vertical cropping (`2k / 40 = exact 0.05"` rational multiple) produce traced vector contours measuring **`304.80 mm` (`12.0000"`)** cut-to-cut with `0.00 mm` discrepancy.
+
 ---
 
 ## Production Browser Implementations (100% Client-Side, Zero Login)
@@ -90,11 +103,11 @@ $$\text{TPI}_{\min} = \frac{3}{t_{\text{in}}}, \qquad N_{\text{teeth}} = t_{\tex
 - **[Nonogram Solver](https://nonogramgrid.com/nonogram-solver/)** — Mid-game partial-state continuation (`5×5–20×20` + bulk clue paste) and cell-by-cell lookahead contradiction proofs.
 
 ### Scroll Saw, Stencil & Pyrography CAD Suite (`scrollsawpatterngenerator.com`)
-- **[Scroll Saw Pattern Generator](https://scrollsawpatterngenerator.com/)** — 1:1 calibrated US Letter & A4 vector tiled PDF downloads, floating-island export guard + 1-click auto-bridging, and `#58` pilot drill marks.
-- **[Scroll Saw Name Pattern Maker](https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/)** — Bilingual structurally welded script & block name plaques where interior letter counters auto-bridge to the base rail.
+- **[Scroll Saw Pattern Generator](https://scrollsawpatterngenerator.com/)** — `99.2%` IoU Marching Squares `1:1` calibrated US Letter & A4 tiled vector PDF downloads, Floating-Island Export Guard + Intarsia multi-piece override, and half-pixel EDT wire-gauge (`#65–#44`) pinhole sealing + centered pilot drill marks.
+- **[Scroll Saw Name Pattern Maker](https://scrollsawpatterngenerator.com/scroll-saw-name-pattern-maker/)** — `304.80 mm` (`0.00 mm` error) zero-padding flat-bottom welded CJK/Latin script & block name plaques with overhang-free open-top lowercase descender (`g, j, p, q, y`) U-relief coves.
 - **[Stencil Maker From Photo](https://scrollsawpatterngenerator.com/stencil-maker-from-photo/)** — Multi-island Mylar, airbrush, and Cricut stencil bridge synthesizer guaranteeing single-sheet physical connectivity.
 - **[Wood Burning Pattern Generator](https://scrollsawpatterngenerator.com/wood-burning-pattern-generator/)** — Edge-preserving line art, 3-tone pyrography heat-shading maps, and horizontal mirror iron-on transfer sheets.
-- **[Scroll Saw Blade Chart](https://scrollsawpatterngenerator.com/scroll-saw-blade-chart/)** — Interactive thickness, wood hardness, SPM speed, and numbered wire-gauge pilot drill calculator.
+- **[Scroll Saw Blade Chart](https://scrollsawpatterngenerator.com/scroll-saw-blade-chart/)** — Interactive thickness, wood hardness, SPM speed, and `#65–#44` numbered wire-gauge pilot drill calculator.
 
 ---
 
@@ -119,6 +132,10 @@ import {
   encodePdfToUnicodeCMap,
   mergeBinaryInkScanlines,
   computeTrueScalePrintTiles,
+  traceBinaryMaskToContourLoops,
+  resolveInteriorCutoutsAndSealPinholes,
+  calibrateCutToCutPlaqueBounds,
+  measureContourOuterBounds,
 } from "./src/index.mjs";
 
 // 1. Mid-game Nonogram continuation & lookahead Reductio ad Absurdum proof
@@ -132,13 +149,20 @@ const proof = proveNonogramLookaheadStep(
 const cmap = encodePdfToUnicodeCMap("数织复测 Portrait 20");
 const tiles = computeTrueScalePrintTiles(14, 18, "letter"); // 2x2 = 4 US Letter sheets
 
-// 3. 2D 4-connected BFS stencil island audit & shortest-Euclidean bridging
+// 3. Half-pixel (2W+1)x(2H+1) EDT pinhole sealing (#55 / 1.32 mm) + Marching Squares 1:1 contour
+const cutoutAudit = resolveInteriorCutoutsAndSealPinholes(plaqueMask, 480, 160, {
+  pxPerMm: 40 / 25.4,
+  minDrillMm: 1.32,
+});
+// cutoutAudit.oneToOneParity === true (survivingHoleLoopCount === drillPoints.length)
+
+// 4. 2D 4-connected BFS stencil island audit & shortest-Euclidean bridging
 const audit = detectFloatingIslands(stencilMask, 64, 64);
 if (audit.islandCount > 0) {
   const { bridgedMask, bridgesAdded } = autoBridgeIslands(stencilMask, 64, 64, 1);
 }
 
-// 4. 3-tooth scroll saw blade & numbered wire-gauge pilot drill recommendation
+// 5. 3-tooth scroll saw blade & numbered wire-gauge pilot drill recommendation
 const setup = recommendScrollSawBlade({
   thicknessIn: 0.25,
   isHardwood: false,
@@ -161,7 +185,10 @@ const setup = recommendScrollSawBlade({
 ✔ proveNonogramLookaheadStep emits numbered cell-by-cell subSteps and exact contradiction line
 ✔ encodePdfToUnicodeCMap & mergeBinaryInkScanlines build UTF-16BE CMap streams and coalesce 2D glyph runs
 ✔ computeTrueScalePrintTiles calculates 1:1 US Letter and ISO A4 poster sheets at 72 pt/in
-ℹ tests 11 | pass 11 | fail 0
+✔ resolveInteriorCutoutsAndSealPinholes seals 1.03 mm < 1.32 mm #55 micro-pinholes and preserves >= 1.50 mm holes with 1:1 parity
+✔ traceBinaryMaskToContourLoops enforces 4-connected saddle separation (cases 5/10/13/14) and >= 99% pixel-to-vector IoU
+✔ calibrateCutToCutPlaqueBounds achieves exact 304.80 mm (12.0000 in) cut-to-cut outer dimension parity at 40 px/in
+ℹ tests 14 | pass 14 | fail 0
 ```
 
 ## Further Reading

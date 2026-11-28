@@ -13,6 +13,14 @@ import {
   encodePdfToUnicodeCMap,
   mergeBinaryInkScanlines,
   computeTrueScalePrintTiles,
+  polygonSignedArea2D,
+  pointInPolygon2D,
+  traceBinaryMaskToContourLoops,
+  computeHalfPixelEdt,
+  maxInscribedCircleInContourHole,
+  resolveInteriorCutoutsAndSealPinholes,
+  measureContourOuterBounds,
+  calibrateCutToCutPlaqueBounds,
 } from "../src/index.mjs";
 
 test("computeNonogramClues extracts exact row and column run-length clues including [0] empty lines", () => {
@@ -341,4 +349,202 @@ test("computeTrueScalePrintTiles calculates 1:1 US Letter and ISO A4 poster shee
   assert.equal(a4.cols, 2);
   assert.equal(a4.rows, 3);
   assert.equal(a4.totalSheets, 6);
+});
+
+test("resolveInteriorCutoutsAndSealPinholes seals 1.03 mm < 1.32 mm #55 micro-pinholes and preserves >= 1.50 mm holes with 1:1 parity", () => {
+  // 12" pattern at 520 px grid width => pxPerMm = 520 / 304.8 = 1.706037 px/mm
+  const W = 64;
+  const H = 48;
+  const pxPerMm = 520 / 304.8;
+  const mask = new Uint8Array(W * H).fill(1);
+
+  // 1) Open exterior waste along top/left border (must NOT be sealed or given an interior pilot drill mark)
+  for (let x = 0; x < W; x++) mask[x] = 0;
+
+  // 2) Un-drillable 2x2 micro-pinhole at (12..13, 14..15):
+  //    Half-pixel EDT sqDist = 4 => rawDiameter = 2.0 px = 1.17 mm => effectiveDiameter = 1.03 mm (< 1.32 mm #55 bit!)
+  for (let y = 14; y <= 15; y++) {
+    for (let x = 12; x <= 13; x++) {
+      mask[y * W + x] = 0;
+    }
+  }
+
+  // 3) Valid 3x3 enclosed cutout at (28..30, 14..16):
+  //    Half-pixel EDT sqDist = 9 => rawDiameter = 3.0 px = 1.76 mm => effectiveDiameter = 1.62 mm (>= 1.50 mm!)
+  for (let y = 14; y <= 16; y++) {
+    for (let x = 28; x <= 30; x++) {
+      mask[y * W + x] = 0;
+    }
+  }
+
+  // 4) Larger 5x5 enclosed fretwork window at (44..48, 22..26):
+  //    Clear diameter ~ 2.75 mm (>= 1.50 mm!)
+  for (let y = 22; y <= 26; y++) {
+    for (let x = 44; x <= 48; x++) {
+      mask[y * W + x] = 0;
+    }
+  }
+
+  const edtBefore = computeHalfPixelEdt(mask, W, H);
+  assert.equal(edtBefore.latticeWidth, W * 2 + 1);
+  assert.equal(edtBefore.latticeHeight, H * 2 + 1);
+
+  const res = resolveInteriorCutoutsAndSealPinholes(mask, W, H, {
+    pxPerMm,
+    minDrillMm: 1.32, // #55 wire-gauge bit
+    clearanceMarginMm: 0.18, // 1.32 + 0.18 = 1.50 mm clear threshold
+  });
+
+  // Verify the 1.03 mm micro-pinhole was automatically sealed to solid wood
+  assert.equal(res.sealedPinholeCount, 1);
+  assert.equal(res.sealedPinholes[0].effectiveDiameterMm, 1.03);
+  assert.ok(res.sealedPinholes[0].effectiveDiameterMm < 1.32);
+  assert.equal(res.sealedWoodMask[14 * W + 12], 1);
+  assert.equal(res.sealedWoodMask[15 * W + 13], 1);
+
+  // Exterior open waste stays open (0)
+  assert.equal(res.sealedWoodMask[5], 0);
+
+  // Both >= 1.50 mm interior holes survive and receive dead-center pilot drill marks (1:1 parity)
+  assert.equal(res.drillPoints.length, 2);
+  assert.equal(res.survivingHoleLoopCount, 2);
+  assert.equal(res.oneToOneParity, true);
+  for (const pt of res.drillPoints) {
+    assert.ok(pt.diameterMm >= 1.4, `Expected surviving hole diameter >= 1.4 mm, got ${pt.diameterMm}`);
+  }
+});
+
+test("traceBinaryMaskToContourLoops enforces 4-connected saddle separation (cases 5/10/13/14) and >= 99% pixel-to-vector IoU", () => {
+  // Part A: Explicit 4-connected saddle test (case 10 tl=1,br=1 and case 5 tr=1,bl=1)
+  const sW = 14;
+  const sH = 14;
+  const saddleMask = new Uint8Array(sW * sH);
+  // Two 3x3 blocks touching ONLY diagonally at (4,4) and (5,5) -> case 10 saddle
+  for (let y = 2; y <= 4; y++) for (let x = 2; x <= 4; x++) saddleMask[y * sW + x] = 1;
+  for (let y = 5; y <= 7; y++) for (let x = 5; x <= 7; x++) saddleMask[y * sW + x] = 1;
+  // Third 3x3 block touching diagonally at (8,4)..(10,2) -> case 5 saddle across (7,4)/(8,5)
+  for (let y = 2; y <= 4; y++) for (let x = 8; x <= 10; x++) saddleMask[y * sW + x] = 1;
+
+  const saddleLoops = traceBinaryMaskToContourLoops(saddleMask, sW, sH, 0, 0);
+  // 4-connected topology MUST keep all 3 diagonal-only blocks separate (3 positive-area outer rings, 0 holes)
+  assert.equal(saddleLoops.length, 3);
+  for (const loop of saddleLoops) {
+    assert.ok(polygonSignedArea2D(loop) > 0);
+  }
+
+  // Part B: 120x120 fretwork medallion with 4 interior cutouts -> verify >= 99% pixel-to-vector IoU & area parity
+  const W = 120;
+  const H = 120;
+  const medallion = new Uint8Array(W * H);
+  let solidCount = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x + 0.5 - 60;
+      const dy = y + 0.5 - 60;
+      const r = Math.hypot(dx, dy);
+      let isWood = r <= 52;
+      // Carve 4 interior circular cutouts (exercises cases 13 right->bottom and 14 bottom->left)
+      const centers = [
+        [-22, 0],
+        [22, 0],
+        [0, -22],
+        [0, 22],
+      ];
+      for (const [cx, cy] of centers) {
+        if (Math.hypot(dx - cx, dy - cy) <= 10.5) isWood = false;
+      }
+      if (isWood) {
+        medallion[y * W + x] = 1;
+        solidCount++;
+      }
+    }
+  }
+
+  const loops = traceBinaryMaskToContourLoops(medallion, W, H, 0.25, 1);
+  const outerLoops = loops.filter((l) => polygonSignedArea2D(l) > 0);
+  const holeLoops = loops.filter((l) => polygonSignedArea2D(l) < 0);
+  assert.equal(outerLoops.length, 1);
+  assert.equal(holeLoops.length, 4);
+
+  const netPolyArea = loops.reduce((acc, l) => acc + polygonSignedArea2D(l), 0);
+  const areaParity = netPolyArea / solidCount;
+  assert.ok(
+    areaParity >= 0.99 && areaParity <= 1.01,
+    `Expected >= 99% area parity, got ${(areaParity * 100).toFixed(2)}%`
+  );
+
+  // Even-odd vector rasterization IoU over all 14,400 pixel centers
+  let intersection = 0;
+  let union = 0;
+  for (let y = 0; y < H; y++) {
+    const py = y + 0.5;
+    for (let x = 0; x < W; x++) {
+      const px = x + 0.5;
+      let inside = false;
+      for (const l of loops) {
+        if (pointInPolygon2D(px, py, l)) inside = !inside;
+      }
+      const truth = medallion[y * W + x] === 1;
+      if (inside && truth) intersection++;
+      if (inside || truth) union++;
+    }
+  }
+  const iou = intersection / union;
+  assert.ok(iou >= 0.99, `Expected >= 99% pixel-to-vector IoU, got ${(iou * 100).toFixed(2)}%`);
+
+  // Verify maxInscribedCircleInContourHole finds centered ~10.5 px radius in each petal hole
+  const insc0 = maxInscribedCircleInContourHole(holeLoops[0]);
+  assert.ok(insc0.radiusPx >= 9.8 && insc0.radiusPx <= 11.0);
+});
+
+test("calibrateCutToCutPlaqueBounds achieves exact 304.80 mm (12.0000 in) cut-to-cut outer dimension parity at 40 px/in", () => {
+  const widthInches = 12;
+  const pxPerIn = 40;
+  const gridW = widthInches * pxPerIn; // 480 px
+  const rawGridH = 180;
+  const flatBottomY = 156;
+  const rawWood = new Uint8Array(gridW * rawGridH);
+
+  // Beveled full-width [0 .. 479] base bar from y=132..155 with 4px vertical toe lands at x=0 and x=479
+  for (let y = 132; y < flatBottomY; y++) {
+    const bevel = Math.max(0, 152 - y); // reaches 0 at y=152..155 (4px vertical toe land!)
+    for (let x = bevel; x < gridW - bevel; x++) {
+      rawWood[y * gridW + x] = 1;
+    }
+  }
+
+  // Welded upper lettering mass spanning y=25..135 (odd raw height 155-25+1 = 131 px -> snaps to even 132 px!)
+  for (let y = 25; y <= 135; y++) {
+    for (let x = 60; x < 420; x++) {
+      rawWood[y * gridW + x] = 1;
+    }
+  }
+  // Simulated lowercase descender stroke protruding below flatBottomY (must be clipped cleanly)
+  for (let y = flatBottomY; y < 170; y++) {
+    for (let x = 210; x < 230; x++) {
+      rawWood[y * gridW + x] = 1;
+    }
+  }
+
+  const cal = calibrateCutToCutPlaqueBounds(rawWood, gridW, rawGridH, {
+    pxPerIn,
+    flatBottomY,
+    enforceFullWidthBaseToe: true,
+    toeLandPx: 4,
+  });
+
+  assert.equal(cal.gridW, 480);
+  assert.equal(cal.gridH % 2, 0); // Exact even pixel height => rational 0.05" multiple
+  assert.equal(cal.widthInches, 12);
+  assert.equal(cal.targetWidthMm, 304.8);
+
+  const loops = traceBinaryMaskToContourLoops(cal.croppedMask, cal.gridW, cal.gridH, 0.25, 1);
+  const bounds = measureContourOuterBounds(loops, pxPerIn);
+
+  assert.equal(bounds.minX, 0);
+  assert.equal(bounds.maxX, 480);
+  assert.equal(bounds.widthInches, 12.0);
+  assert.equal(bounds.widthMm, 304.8);
+  assert.equal(Math.abs(bounds.widthMm - 304.8), 0);
+  assert.equal(bounds.heightInches, cal.heightInches);
 });

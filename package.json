@@ -1,7 +1,7 @@
 {
   "name": "grid-and-fretwork-math",
-  "version": "1.1.0",
-  "description": "Zero-dependency JavaScript/Node.js solvers for 31-bit bitmask Nonogram deduction, mid-game lookahead contradiction proofs, 2D BFS stencil island bridging, 3-tooth blade sizing, and vector PDF /ToUnicode + 1:1 print tiling.",
+  "version": "1.2.0",
+  "description": "Zero-dependency JavaScript/Node.js solvers for 31-bit bitmask Nonogram deduction, lookahead contradiction proofs, 4-connected Marching Squares contours, half-pixel Felzenszwalb-Huttenlocher EDT pinhole sealing, 2D BFS stencil island bridging, and /ToUnicode 1:1 vector PDF tiling.",
   "type": "module",
   "main": "./src/index.mjs",
   "exports": {
